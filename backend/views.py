@@ -259,4 +259,4 @@ def initialload():
                         )
                         temp.append(obj)
                     transactions.objects.bulk_create(temp,ignore_conflicts=True)
-initialload()
+# initialload()
