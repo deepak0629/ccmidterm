@@ -12,7 +12,7 @@ class households(models.Model):
     Children=models.TextField()
 
 class products(models.Model):
-    Product_num=models.IntegerField(null=False, blank=False, primary_key=True)
+    Product_num=models.TextField(null=False, blank=False, primary_key=True)
     Department=models.TextField()
     Commodity=models.TextField()
     Brand_type=models.TextField()

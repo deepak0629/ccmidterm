@@ -67,7 +67,7 @@ def signup(request):
 def gethsnumdetails(request):
     hsnum=request.GET.get('hsnum', None)
     if hsnum==None or len(hsnum)==0:
-        hsnum='0577'
+        hsnum='0010'
     temp=transactions.objects.filter(Hshd_num=hsnum)\
         .select_related('Hshd_num','Product_num')
         # 'Children','Age_range','Marital_status','Income_range',
@@ -134,32 +134,24 @@ def loadcsv(request):
         pfile=request.FILES.get('pfile').read().decode('utf-8') if request.FILES.get('pfile') else None
         tfile = request.FILES.get('tfile').read().decode('utf-8') if request.FILES.get('tfile') else None
         hsfile = request.FILES.get('hsfile').read().decode('utf-8') if request.FILES.get('hsfile') else None
-        productsdict = {}
-        housedict={}
-        if products.objects.all().count() > 0:
-            temp0=products.objects.all()
-            for x in temp0:
-                productsdict[x.Product_num]=x
-        if households.objects.all().count() > 0:
-            temp1 = households.objects.all()
-            for x in temp1:
-                housedict[x.Hshd_num] = x
         if pfile!=None:
             io_string = io.StringIO(pfile)
+            productstemp = []
             for row in list(csv.reader(io_string))[1:]:
-                obj, created = products.objects.get_or_create(
-                    Product_num=int(row[0].strip()),
+                productstemp.append(products(
+                    Product_num=row[0].strip(),
                     Department=row[1].strip(),
                     Commodity=row[2].strip(),
                     Brand_type=row[3].strip(),
                     natural_Organic_Flag=row[4].strip()
-                )
-                productsdict[row[0].strip()] = obj
+                ))
+            products.objects.bulk_create(productstemp, ignore_conflicts=True)
 
         if hsfile!=None:
             io_string = io.StringIO(hsfile)
+            hstemp=[]
             for row in list(csv.reader(io_string))[1:]:
-                obj, created = households.objects.get_or_create(
+                hstemp.append(households(
                     Hshd_num=row[0].strip(),
                     Loyalty_flag=row[1].strip(),
                     Age_range=row[2].strip(),
@@ -169,22 +161,24 @@ def loadcsv(request):
                     Hshd_composition=row[6].strip(),
                     Hshd_size=row[7].strip(),
                     Children=row[8].strip(),
-                )
-                housedict[row[0].strip()] = obj
+                ))
+            households.objects.bulk_create(hstemp, ignore_conflicts=True)
         if tfile!=None:
             io_string = io.StringIO(tfile)
+            tstemp=[]
             for row in list(csv.reader(io_string))[1:10000]:
-                obj, created = transactions.objects.get_or_create(
-                    Hshd_num=housedict[row[1].strip()],
+                tstemp.append(transactions(
+                    Hshd_num_id=row[1].strip(),
                     Basket_num=int(row[0].strip()),
                     Date=datetime.datetime.strptime(row[2].strip(), '%d-%b-%y').strftime('%Y-%m-%d'),
-                    Product_num=productsdict[int(row[3].strip())],
+                    Product_num_id=row[3].strip(),
                     Spend=float(row[4].strip()),
                     Units=int(row[5].strip()),
                     Store_region=row[6].strip(),
                     Week_num=int(row[7].strip()),
                     Year=int(row[8].strip()),
-                )
+                ))
+            transactions.objects.bulk_create(tstemp, ignore_conflicts=True)
         return jsonResponseSender(JsonResponse({"success":True}))
     except Exception as e:
         print(e)
@@ -192,19 +186,16 @@ def loadcsv(request):
 
 
 def initialload():
-    filepath = 'data/{0}'
+    filepath = '../data/{0}'
     with open(filepath.format('400_products.csv')) as allproducts:
         with open(filepath.format('400_transactions.csv')) as alltransactions:
             with open(filepath.format('400_households.csv')) as allhouseholds:
                 preader = csv.reader(allproducts)
                 treader = csv.reader(alltransactions)
                 hreader = csv.reader(allhouseholds)
-                productsdict={}
-                housedict={}
                 if products.objects.all().count() >0:
-                    temp=products.objects.all()
-                    for x in temp:
-                        productsdict[x.Product_num]=x
+                    print(products.objects.all().count())
+                    pass
                 else:
                     productstemp=[]
                     for row in list(preader)[1:]:
@@ -216,13 +207,8 @@ def initialload():
                             natural_Organic_Flag=row[4].strip()
                         ))
                     products.objects.bulk_create(productstemp, ignore_conflicts=True)
-                    productsdb=products.objects.all()
-                    for x in productsdb:
-                        productsdict[x.Product_num]=x
                 if households.objects.all().count() >0:
-                    temp=households.objects.all()
-                    for x in temp:
-                        housedict[x.Hshd_num]=x
+                    pass
                 else:
                     housetemp=[]
                     for row in list(hreader)[1:]:
@@ -238,19 +224,16 @@ def initialload():
                             Children=row[8].strip(),
                         ))
                     households.objects.bulk_create(housetemp, ignore_conflicts=True)
-                    temp = households.objects.all()
-                    for x in temp:
-                        housedict[x.Hshd_num] = x
                 if transactions.objects.all().count() >0:
                     pass
                 else:
                     temp=[]
                     for row in list(treader)[1:20000]:
                         obj=transactions(
-                            Hshd_num=housedict[row[1].strip()],
+                            Hshd_num_id=row[1].strip(),
                             Basket_num=int(row[0].strip()),
                             Date=datetime.datetime.strptime(row[2].strip(), '%d-%b-%y').strftime('%Y-%m-%d'),
-                            Product_num=productsdict[int(row[3].strip())],
+                            Product_num_id=row[3].strip(),
                             Spend=float(row[4].strip()),
                             Units=int(row[5].strip()),
                             Store_region=row[6].strip(),
