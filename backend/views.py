@@ -200,7 +200,7 @@ def initialload():
                     productstemp=[]
                     for row in list(preader)[1:]:
                         productstemp.append(products(
-                            Product_num=int(row[0].strip()),
+                            Product_num=row[0].strip(),
                             Department=row[1].strip(),
                             Commodity=row[2].strip(),
                             Brand_type=row[3].strip(),
